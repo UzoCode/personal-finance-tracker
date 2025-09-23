@@ -1,6 +1,6 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
 // Layout
 import Navbar from "./components/Navbar";
@@ -37,44 +37,40 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected routes (with layout) */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedLayout>
-                <Dashboard />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/transactions"
-            element={
-              <ProtectedLayout>
-                <Transactions />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedLayout>
-                <Settings />
-              </ProtectedLayout>
-            }
-          />
+      {/* Protected routes (with layout) */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedLayout>
+            <Dashboard />
+          </ProtectedLayout>
+        }
+      />
+      <Route
+        path="/transactions"
+        element={
+          <ProtectedLayout>
+            <Transactions />
+          </ProtectedLayout>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedLayout>
+            <Settings />
+          </ProtectedLayout>
+        }
+      />
 
-          {/* Default redirect */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+      {/* Default redirect */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 };
 
