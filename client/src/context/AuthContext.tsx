@@ -32,8 +32,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Restore auth state from localStorage on load
   useEffect(() => {
-    const savedToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-    const savedUser = typeof window !== "undefined" ? localStorage.getItem("authUser") : null;
+    if (typeof window === "undefined") return;
+
+    const savedToken = localStorage.getItem("authToken");
+    const savedUser = localStorage.getItem("authUser");
 
     if (savedToken && savedUser) {
       setToken(savedToken);
@@ -43,10 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // --- Methods ---
-  const login = async (email: string, password: string) => {
-    const response = await api.post<AuthResponse>("/auth/login", { email, password });
-    const { access_token, user } = response.data;
-
+  const handleAuth = (access_token: string, user: User) => {
     setToken(access_token);
     setUser(user);
 
@@ -56,24 +55,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     api.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
   };
 
+  const login = async (email: string, password: string) => {
+    const response = await api.post<AuthResponse>("/auth/login", { email, password });
+    handleAuth(response.data.access_token, response.data.user);
+  };
+
   const register = async (name: string, email: string, password: string) => {
     const response = await api.post<AuthResponse>("/auth/register", { name, email, password });
-    const { access_token, user } = response.data;
-
-    setToken(access_token);
-    setUser(user);
-
-    localStorage.setItem("authToken", access_token);
-    localStorage.setItem("authUser", JSON.stringify(user));
-
-    api.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+    handleAuth(response.data.access_token, response.data.user);
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
+
     localStorage.removeItem("authToken");
     localStorage.removeItem("authUser");
+
     delete api.defaults.headers.common["Authorization"];
   };
 
