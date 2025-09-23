@@ -1,77 +1,84 @@
-// src/context/AuthContext.tsx
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
+// client/src/context/AuthContext.tsx
+import React, { createContext, useContext, useState, useEffect } from "react";
 import api from "../lib/api";
 
+// --- Types ---
 interface User {
   id: string;
   email: string;
-  name: string;
+  name?: string;
+}
+
+interface AuthResponse {
+  access_token: string;
+  user: User;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  isAuthenticated: boolean;
 }
 
+// --- Context setup ---
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  // Rehydrate from localStorage on app load
+  // Restore auth state from localStorage on load
   useEffect(() => {
-    const savedToken = localStorage.getItem("authToken");
-    const savedUser = localStorage.getItem("authUser");
+    const savedToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    const savedUser = typeof window !== "undefined" ? localStorage.getItem("authUser") : null;
+
     if (savedToken && savedUser) {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
+      api.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
     }
   }, []);
 
+  // --- Methods ---
   const login = async (email: string, password: string) => {
-    const res = await api.post("/auth/login", { email, password });
-    const { user, token } = res.data;
+    const response = await api.post<AuthResponse>("/auth/login", { email, password });
+    const { access_token, user } = response.data;
 
+    setToken(access_token);
     setUser(user);
-    setToken(token);
 
-    localStorage.setItem("authToken", token);
+    localStorage.setItem("authToken", access_token);
     localStorage.setItem("authUser", JSON.stringify(user));
+
+    api.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
   };
 
   const register = async (name: string, email: string, password: string) => {
-    const res = await api.post("/auth/register", { name, email, password });
-    const { user, token } = res.data;
+    const response = await api.post<AuthResponse>("/auth/register", { name, email, password });
+    const { access_token, user } = response.data;
 
+    setToken(access_token);
     setUser(user);
-    setToken(token);
 
-    localStorage.setItem("authToken", token);
+    localStorage.setItem("authToken", access_token);
     localStorage.setItem("authUser", JSON.stringify(user));
+
+    api.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
   };
 
   const logout = () => {
-    setUser(null);
     setToken(null);
+    setUser(null);
     localStorage.removeItem("authToken");
     localStorage.removeItem("authUser");
+    delete api.defaults.headers.common["Authorization"];
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, token, login, register, logout, isAuthenticated: !!user }}
-    >
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
